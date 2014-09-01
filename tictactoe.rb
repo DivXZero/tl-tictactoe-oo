@@ -167,7 +167,7 @@ class Game
       end
     end
 
-    if board.full?
+    if board.full? && !board.win_condition?
       Console.clear_screen
       Console.display_banner('Out of moves, Game is a Draw.')
     end
