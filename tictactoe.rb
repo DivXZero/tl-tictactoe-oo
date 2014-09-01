@@ -37,7 +37,7 @@ class GameBoard
 
   def win_condition?
     win_lines.each do |line|
-      if get_position(line[0]) and get_position(line[1]) and get_position(line[2])
+      if get_position(line[0]) == get_position(line[1]) && get_position(line[1]) == get_position(line[2])
         return true unless get_position(line[0]).nil?
       end
     end
@@ -114,30 +114,84 @@ class Player
   end
 
   def turn(board)
-
+    choice = 0
+    position_accepted = false
+    until choice > 0 && choice < 10 && position_accepted
+      choice = Console.get_input('Choose an open position (1-9)').to_i
+      if board.position_set?(choice)
+        puts 'Position is already taken. Please choose another.'
+      else
+        position_accepted = true
+      end
+    end
+    board.set_position(choice, self.symbol)
   end
 
   def ai_turn(board)
-
+    if board.open_win_condition?
+      board.set_position(board.get_open_win_position, self.symbol)
+    else
+      choice = Time.new.to_i # Ensure that our random numbers are unique each game
+      choice = rand(1..9)
+      choice = rand(1..9) until board.get_position(choice).nil?
+      board.set_position(choice, self.symbol)
+    end
   end
 end
 
 class Game
-  def initialize
+  attr_reader :player, :computer, :board
 
+  def initialize
+    @player = Player.new('X')
+    @computer = Player.new('O')
+    @board = GameBoard.new
   end
 
   def run
+    Console.clear_screen
+    Console.display_banner("Let's Play Tic-Tac-Toe!")
+    board.display
 
+    player.turn(board)
+    if board.win_condition?
+      Console.clear_screen
+      Console.display_banner('You Win!')
+      player.increment_score
+    else
+      computer.ai_turn(board) unless board.full?
+      if board.win_condition?
+        Console.clear_screen
+        Console.display_banner('You Lose :(')
+        computer.increment_score
+      end
+    end
+
+    if board.full?
+      Console.clear_screen
+      Console.display_banner('Out of moves, Game is a Draw.')
+    end
+
+    if board.win_condition? || board.full?
+      board.display
+      display_scores
+      @board = GameBoard.new
+      run if play_again?
+    else
+      run
+    end
+  end
+
+  def display_scores
+    puts "\tScores\n\t~*~*~*~*~*~*~*~*~*~\n\tYou:\t\t#{player.score}\n\tComputer:\t#{computer.score}"
+  end
+
+  private
+  def play_again?
+    play_again = {'y' => true, 'n' => false}
+    play_again[Console.get_input('Play Again? [y/N]').downcase]
   end
 end
 
-Console.clear_screen
-player = Player.new('X')
-computer = Player.new('O')
-board = GameBoard.new
-board.set_position(1, player.symbol)
-#board.set_position(5, player.symbol)
-board.set_position(9, player.symbol)
-board.display
-puts "Win Condition?: #{board.win_condition?}\tOpen Win Condition?: #{board.open_win_condition?}\tOpen Win Position: #{board.get_open_win_position}"
+game = Game.new
+game.run
